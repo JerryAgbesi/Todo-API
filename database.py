@@ -1,9 +1,9 @@
-from fastapi import FastAPI,depends
+from fastapi import FastAPI
 import sqlalchemy
-import databases
+import databases 
 from datetime import datetime
 from pydantic import BaseModel,Field
-from main import app
+
 
 DATABASE_URL = "sqlite:///./store.db"
 
@@ -11,7 +11,7 @@ metadata = sqlalchemy.MetaData()
 
 db = databases.Database(DATABASE_URL)
 
-todo = sqlalchemy.table(
+todo = sqlalchemy.Table(
     "Todo",
     metadata,
     sqlalchemy.Column("id",sqlalchemy.Integer,primary_key=True),
@@ -23,5 +23,8 @@ todo = sqlalchemy.table(
 engine = sqlalchemy.create_engine(DATABASE_URL,connect_args={"check_same_thread": False})
 
 metadata.create_all(engine)
+
+# def get_database() -> Database:
+#     return db
 
 

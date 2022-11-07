@@ -1,42 +1,72 @@
 from datetime import datetime
 from fastapi import FastAPI,HTTPException,Depends
+from fastapi.testclient import TestClient
 from pydantic import BaseModel,Field
 from database import todo,db
 
+
+
 app = FastAPI(title="Todo API")
 
-class Todo(BaseModel):
-    id: int 
-    task: str
-    description: str
-    date_created: datetime
+@app.get('/')
+async def read_root():
+    return {"message":"root read successful"}
 
-class TodoIn(BaseModel):
-    task: str = Field(...)
-    description: str  = Field(...)
+
+
+
+
+
+
+
+
+
+
+# class Todo(BaseModel):
+#     id: int 
+#     task: str
+#     description: str
+#     date_created: datetime
+
+# class TodoIn(BaseModel):
+#     task: str = Field(...)
+#     description: str  = Field(...)
    
 
 
-@app.on_event("startup")
-async def startup():
-    await db.connect()
+# @app.on_event("startup")
+# async def startup():
+#     await db.connect()
 
-@app.on_event("shutdown")
-async def shutdown():
-    await db.disconnect()    
+# @app.on_event("shutdown")
+# async def shutdown():
+#     await db.disconnect() 
+
+# @app.post("/todo/",response_model=Todo)
+# async def create_todo(t:TodoIn):
+#     post_query = todo.insert().values(
+#         task = t.task,
+#         description = t.description,
+#         date_created = datetime.utcnow())
+#     record_id = await db.execute(post_query)
+#     query = todo.select().where(todo.c.id == record_id)
+#     values = {"id": record_id,"task":t.task,"description":t.description,"date":datetime.utcnow()}
+#     row = await db.fetch_one(query) 
+#     type(row)
+#     return row        
 
 
-@app.post("/todo/",response_model=Todo)
-async def create_todo(t:TodoIn=Depends()):
-    query = todo.insert().values(
-        task = t.task,
-        description = t.description,
-        date_created = datetime.utcnow()
-)
-    record_id = todo.execute(query)
-    query = todo.select().where(todo.c.id == record_id)
-    row = await db.fetch_one(query)
-    return {**row}
+# @app.post("/todo/",response_model=Todo)
+# async def create_todo(t:TodoIn = Depends()):
+#     query = todo.insert().values(
+#         task = t.task,
+#         description = t.description,
+#         date_created = datetime.utcnow()
+# )
+#     record_id = await db.execute(query)
+#     query = todo.select().where(todo.c.id == record_id)
+#     row = await db.fetch_one(query)
+#     return Todo(**row)
    
 
 # @app.get("/todo",response_model=list[Todo])
