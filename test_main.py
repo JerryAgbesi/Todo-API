@@ -4,7 +4,9 @@ from main import app
 
 test_client = TestClient(app)
 
-def test_main():
-    response = test_client.get('/')
+
+
+def test_get_todos():
+    response = test_client.get('/todo')
     assert response.status_code == 200
-    assert response.json() == {"message":"root read successful"}
+    # assert response.json() == {"message":"root read successful"}

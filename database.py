@@ -1,15 +1,15 @@
 from fastapi import FastAPI
 import sqlalchemy
-import databases 
+from databases import Database 
 from datetime import datetime
-from pydantic import BaseModel,Field
+
 
 
 DATABASE_URL = "sqlite:///./store.db"
 
 metadata = sqlalchemy.MetaData()
 
-db = databases.Database(DATABASE_URL)
+database = Database(DATABASE_URL)
 
 todo = sqlalchemy.Table(
     "Todo",
@@ -20,11 +20,18 @@ todo = sqlalchemy.Table(
     sqlalchemy.Column("date_created",sqlalchemy.DateTime)
 )
 
+# user = sqlalchemy.Table(
+#     "User",
+#     metadata,
+#     sqlalchemy.Column("id",sqlalchemy.Integer,primary_key = True,autoincrement= True),
+#     sqlalchemy.Column("name",sqlalchemy.String(300))
+
+# )
 engine = sqlalchemy.create_engine(DATABASE_URL,connect_args={"check_same_thread": False})
 
-metadata.create_all(engine)
 
-# def get_database() -> Database:
-#     return db
+
+def get_database() -> Database:
+    return database
 
 

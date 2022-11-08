@@ -1,105 +1,86 @@
 from datetime import datetime
-from fastapi import FastAPI,HTTPException,Depends
-from fastapi.testclient import TestClient
+from fastapi import FastAPI,HTTPException,Depends,status
 from pydantic import BaseModel,Field
-from database import todo,db
+from database import todo,get_database,database,Database,metadata,engine
+
 
 
 
 app = FastAPI(title="Todo API")
 
-@app.get('/')
-async def read_root():
-    return {"message":"root read successful"}
+
+class TodoIn(BaseModel):
+    task: str
+    description: str
+    date_created: datetime = datetime.utcnow()
+
+class Todo(BaseModel):
+    id: int 
+    task: str
+    description: str
+    date_created: datetime
+  
 
 
-
-
-
-
-
-
-
-
-
-# class Todo(BaseModel):
-#     id: int 
-#     task: str
-#     description: str
-#     date_created: datetime
-
-# class TodoIn(BaseModel):
-#     task: str = Field(...)
-#     description: str  = Field(...)
    
 
-
-# @app.on_event("startup")
-# async def startup():
-#     await db.connect()
-
-# @app.on_event("shutdown")
-# async def shutdown():
-#     await db.disconnect() 
-
-# @app.post("/todo/",response_model=Todo)
-# async def create_todo(t:TodoIn):
-#     post_query = todo.insert().values(
-#         task = t.task,
-#         description = t.description,
-#         date_created = datetime.utcnow())
-#     record_id = await db.execute(post_query)
-#     query = todo.select().where(todo.c.id == record_id)
-#     values = {"id": record_id,"task":t.task,"description":t.description,"date":datetime.utcnow()}
-#     row = await db.fetch_one(query) 
-#     type(row)
-#     return row        
-
-
-# @app.post("/todo/",response_model=Todo)
-# async def create_todo(t:TodoIn = Depends()):
-#     query = todo.insert().values(
-#         task = t.task,
-#         description = t.description,
-#         date_created = datetime.utcnow()
-# )
-#     record_id = await db.execute(query)
-#     query = todo.select().where(todo.c.id == record_id)
-#     row = await db.fetch_one(query)
-#     return Todo(**row)
+async def get_todo_or_404(id: int, database: Database = Depends(get_database)) -> Todo :
+    select_query = todo.select().where(todo.c.id == id)
+    print(select_query)
+    raw_post = await database.fetch_one(select_query)
    
 
-# @app.get("/todo",response_model=list[Todo])
-# async def get_todos():
-#     return fake_db
+    if raw_post is None:
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND)
 
-# @app.get("/todo/{id}")
-# async def get_todo(id:int):
-#     try:
-#         return fake_db[id]
-#     except:
-#         return HTTPException(status_code=404)   
+    return Todo(**raw_post)  
 
-# @app.put("/todo/{id}")
-# async def update_todo(id:int,todo:Todo):
-#     try:
-#         fake_db[id] = todo
-#         return fake_db[id]
-#     except:
-#         return HTTPException(status_code=404,detail="Could not update Todo")
+async def pagination(skip: int = 0,limit: int = 3)-> tuple[int,int]:
+    return (skip,limit)
 
-# @app.delete("/todo/{id}")
-# async def delete_todo(id:int):
-#     try:
-#         victim = fake_db[id]
-#         fake_db.pop(id)
-#         return victim
-#     except:
-#         return HTTPException(status_code=404,detail="Could not delete Todo")
 
-# @app.post("/meal")
-# async def home(name:str = Form(...),origin:str = Form(...)):
-#     return {"name":name,"origin":origin}
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+    metadata.create_all(engine)
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect() 
+
+@app.post("/todo",status_code=status.HTTP_201_CREATED)
+async def create_todo(t:TodoIn,database: Database = Depends(get_database)):
+    post_query = todo.insert().values(t.dict())
+    record_id = await database.execute(post_query)
+    row = await get_todo_or_404(record_id,database)
+
+    return row
+     
+
+@app.get("/todo")
+async def get_todos(pagination: tuple[int,int] = Depends(pagination),database: Database = Depends(get_database)) -> list[Todo]:
+    skip,limit = pagination
+    select_query = todo.select().offset(skip).limit(limit)
+    rows =  await database.fetch_all(select_query)
+    result = [Todo(**row) for row in rows ] 
+
+    return result
+
+
+#Update a todo
+@app.patch("/todo/{id}")
+async def update_todo(t: TodoIn,todoDB:Todo = Depends(get_todo_or_404),database: Database = Depends(get_database))-> Todo:
+    update_query = todo.update().where(todo.c.id == todoDB.id).values(t.dict(exclude_unset=True))
+    todo_id = await database.execute(update_query)
+
+    response = await get_todo_or_404(todo_id,database)
+
+    return response
+
+@app.delete("/todo/{id}",status_code=status.HTTP_204_NO_CONTENT)
+async def delete_todo(todoDB: Todo = Depends(get_todo_or_404),database: Database = Depends(get_database)):
+    delete_query = todo.delete().where(todo.c.id == todoDB.id)
+    await database.execute(delete_query)
 
 
 
