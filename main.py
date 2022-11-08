@@ -48,6 +48,7 @@ async def startup():
 async def shutdown():
     await database.disconnect() 
 
+#create a new todo
 @app.post("/todo",status_code=status.HTTP_201_CREATED)
 async def create_todo(t:TodoIn,database: Database = Depends(get_database)):
     post_query = todo.insert().values(t.dict())
@@ -56,6 +57,7 @@ async def create_todo(t:TodoIn,database: Database = Depends(get_database)):
 
     return row
 
+#get a specific todo using its id
 @app.get("/todo/{id}",response_model=Todo)
 async def get_todos(todoDB: Todo = Depends(get_todo_or_404), database: Database = Depends(get_database)) -> Todo:
     select_query = todo.select().where(todo.c.id == todoDB.id)
@@ -64,7 +66,7 @@ async def get_todos(todoDB: Todo = Depends(get_todo_or_404), database: Database 
 
     return Todo(**row)  
      
-
+#get a list of all todos
 @app.get("/todo")
 async def get_todos(pagination: tuple[int,int] = Depends(pagination),database: Database = Depends(get_database)) -> list[Todo]:
     skip,limit = pagination
@@ -85,6 +87,7 @@ async def update_todo(t: TodoIn,todoDB:Todo = Depends(get_todo_or_404),database:
 
     return response
 
+#delete a specifc todo
 @app.delete("/todo/{id}",status_code=status.HTTP_204_NO_CONTENT)
 async def delete_todo(todoDB: Todo = Depends(get_todo_or_404),database: Database = Depends(get_database)):
     delete_query = todo.delete().where(todo.c.id == todoDB.id)
