@@ -55,6 +55,14 @@ async def create_todo(t:TodoIn,database: Database = Depends(get_database)):
     row = await get_todo_or_404(record_id,database)
 
     return row
+
+@app.get("/todo/{id}",response_model=Todo)
+async def get_todos(todoDB: Todo = Depends(get_todo_or_404), database: Database = Depends(get_database)) -> Todo:
+    select_query = todo.select().where(todo.c.id == todoDB.id)
+    row =  await database.fetch_one(select_query)
+    
+
+    return Todo(**row)  
      
 
 @app.get("/todo")
